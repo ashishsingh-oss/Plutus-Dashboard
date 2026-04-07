@@ -338,6 +338,9 @@
   <span class="filter-label">Month</span>
   <div class="filter-group" id="monthFilters"></div>
   <div class="filter-divider"></div>
+  <span class="filter-label">Week</span>
+  <div class="filter-group" id="weekFilters"></div>
+  <div class="filter-divider"></div>
   <span class="filter-reset" onclick="resetFilters()">✕ Reset</span>
 </div>
 
@@ -422,6 +425,7 @@ let allSources = [];
 
 let activeSourceFilters = new Set();
 let activeMonthFilters = new Set();
+let activeWeekFilters = new Set();
 let sortCol = -1;
 let sortDir = 1;
 
@@ -467,20 +471,46 @@ function buildFilters() {
   const mf = document.getElementById('monthFilters');
   mf.innerHTML = '';
   const MONTH_ORDER = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const MONTH_LABELS = {
+    January: 'Jan', February: 'Feb', March: 'Mar', April: 'Apr', May: 'May', June: 'Jun',
+    July: 'Jul', August: 'Aug', September: 'Sep', October: 'Oct', November: 'Nov', December: 'Dec'
+  };
   const months = [...new Set(ALL_DATA.map(r => r['Month::multi-filter']).filter(m => m && m !== 'Total'))]
     .sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b));
   months.forEach(m => {
     const chip = document.createElement('span');
     chip.className = 'filter-chip';
-    chip.textContent = m;
+    chip.textContent = MONTH_LABELS[m] || m;
+    chip.title = m;
     chip.dataset.val = m;
     chip.onclick = () => toggleFilter('month', m, chip);
     mf.appendChild(chip);
   });
+
+  const wf = document.getElementById('weekFilters');
+  wf.innerHTML = '';
+  const weekRank = (w) => {
+    const m = String(w).match(/week\s*(\d+)/i);
+    return m ? +m[1] : Number.POSITIVE_INFINITY;
+  };
+  const weeks = [...new Set(ALL_DATA.map(r => r['week']).filter(w => /^week\s*\d+$/i.test(String(w).trim())))]
+    .sort((a, b) => weekRank(a) - weekRank(b));
+  weeks.forEach((w) => {
+    const chip = document.createElement('span');
+    chip.className = 'filter-chip';
+    chip.textContent = w;
+    chip.dataset.val = w;
+    chip.onclick = () => toggleFilter('week', w, chip);
+    wf.appendChild(chip);
+  });
 }
 
 function toggleFilter(type, val, chip) {
-  const set = type === 'source' ? activeSourceFilters : activeMonthFilters;
+  const set = type === 'source'
+    ? activeSourceFilters
+    : type === 'month'
+      ? activeMonthFilters
+      : activeWeekFilters;
   if (set.has(val)) {
     set.delete(val);
     chip.classList.remove('active');
@@ -494,6 +524,7 @@ function toggleFilter(type, val, chip) {
 function resetFilters() {
   activeSourceFilters.clear();
   activeMonthFilters.clear();
+  activeWeekFilters.clear();
   document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
   sortCol = -1;
   sortDir = 1;
@@ -505,8 +536,10 @@ function getFiltered() {
   return ALL_DATA.filter(r => {
     const src = r['Sources::multi-filter'];
     const mon = r['Month::multi-filter'];
+    const wk = r['week'];
     if (activeSourceFilters.size && !activeSourceFilters.has(src)) return false;
     if (activeMonthFilters.size && !activeMonthFilters.has(mon)) return false;
+    if (activeWeekFilters.size && !activeWeekFilters.has(wk)) return false;
     return true;
   });
 }
