@@ -1,5 +1,9 @@
+const { getStore } = require("@netlify/blobs");
+
 const RETRIES = 3;
 const TIMEOUT_MS = 20000;
+const BLOB_STORE = "plutus-dashboard";
+const BLOB_KEY = "latest-data.csv";
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -18,6 +22,25 @@ async function fetchWithTimeout(url, timeoutMs) {
   }
 }
 
+async function fetchCsvFromUpstream(upstreamUrl) {
+  let lastErr = null;
+  for (let attempt = 1; attempt <= RETRIES; attempt++) {
+    try {
+      const url = `${upstreamUrl}${upstreamUrl.includes("?") ? "&" : "?"}_t=${Date.now()}`;
+      const resp = await fetchWithTimeout(url, TIMEOUT_MS);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+      const csv = await resp.text();
+      if (!csv || !csv.trim()) throw new Error("Empty CSV response");
+      return csv;
+    } catch (err) {
+      lastErr = err;
+      await sleep(300 * attempt);
+    }
+  }
+  throw lastErr || new Error("unknown error");
+}
+
 exports.handler = async function handler() {
   const upstreamUrl = process.env.UPSTREAM_URL;
 
@@ -29,34 +52,42 @@ exports.handler = async function handler() {
     };
   }
 
-  let lastErr = null;
-  for (let attempt = 1; attempt <= RETRIES; attempt++) {
-    try {
-      const url = `${upstreamUrl}${upstreamUrl.includes("?") ? "&" : "?"}_t=${Date.now()}`;
-      const resp = await fetchWithTimeout(url, TIMEOUT_MS);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  const store = getStore(BLOB_STORE);
 
-      const csv = await resp.text();
-      if (!csv || !csv.trim()) throw new Error("Empty CSV response");
-
+  try {
+    const cachedCsv = await store.get(BLOB_KEY, { type: "text" });
+    if (cachedCsv && cachedCsv.trim()) {
       return {
         statusCode: 200,
         headers: {
-          "content-type": resp.headers.get("content-type") || "text/csv; charset=UTF-8",
+          "content-type": "text/csv; charset=UTF-8",
           "access-control-allow-origin": "*",
           "cache-control": "no-store"
         },
-        body: csv
+        body: cachedCsv
       };
-    } catch (err) {
-      lastErr = err;
-      await sleep(300 * attempt);
     }
+  } catch (_) {
+    // Fall through and fetch directly from upstream.
   }
 
-  return {
-    statusCode: 502,
-    headers: { "content-type": "text/plain; charset=utf-8" },
-    body: `Upstream fetch failed: ${lastErr ? lastErr.message : "unknown error"}`
-  };
+  try {
+    const csv = await fetchCsvFromUpstream(upstreamUrl);
+    await store.set(BLOB_KEY, csv, { metadata: { refreshedAt: new Date().toISOString() } });
+    return {
+      statusCode: 200,
+      headers: {
+        "content-type": "text/csv; charset=UTF-8",
+        "access-control-allow-origin": "*",
+        "cache-control": "no-store"
+      },
+      body: csv
+    };
+  } catch (lastErr) {
+    return {
+      statusCode: 502,
+      headers: { "content-type": "text/plain; charset=utf-8" },
+      body: `Upstream fetch failed: ${lastErr ? lastErr.message : "unknown error"}`
+    };
+  }
 };

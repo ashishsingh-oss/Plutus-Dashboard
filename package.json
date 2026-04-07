@@ -1,0 +1,24 @@
+{
+  "name": "plutus_dashboard",
+  "version": "1.0.0",
+  "description": "Plutus data",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ashishsingh-oss/Plutus-Dashboard.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ashishsingh-oss/Plutus-Dashboard/issues"
+  },
+  "homepage": "https://github.com/ashishsingh-oss/Plutus-Dashboard#readme",
+  "dependencies": {
+    "@netlify/blobs": "^10.7.4"
+  }
+}
