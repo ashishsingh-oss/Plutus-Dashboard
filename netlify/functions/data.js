@@ -52,28 +52,41 @@ exports.handler = async function handler() {
     };
   }
 
-  const store = getStore(BLOB_STORE);
-
+  let store = null;
   try {
-    const cachedCsv = await store.get(BLOB_KEY, { type: "text" });
-    if (cachedCsv && cachedCsv.trim()) {
-      return {
-        statusCode: 200,
-        headers: {
-          "content-type": "text/csv; charset=UTF-8",
-          "access-control-allow-origin": "*",
-          "cache-control": "no-store"
-        },
-        body: cachedCsv
-      };
-    }
+    store = getStore(BLOB_STORE);
   } catch (_) {
-    // Fall through and fetch directly from upstream.
+    store = null;
+  }
+
+  if (store) {
+    try {
+      const cachedCsv = await store.get(BLOB_KEY, { type: "text" });
+      if (cachedCsv && cachedCsv.trim()) {
+        return {
+          statusCode: 200,
+          headers: {
+            "content-type": "text/csv; charset=UTF-8",
+            "access-control-allow-origin": "*",
+            "cache-control": "no-store"
+          },
+          body: cachedCsv
+        };
+      }
+    } catch (_) {
+      // Fall through and fetch directly from upstream.
+    }
   }
 
   try {
     const csv = await fetchCsvFromUpstream(upstreamUrl);
-    await store.set(BLOB_KEY, csv, { metadata: { refreshedAt: new Date().toISOString() } });
+    if (store) {
+      try {
+        await store.set(BLOB_KEY, csv, { metadata: { refreshedAt: new Date().toISOString() } });
+      } catch (_) {
+        // Non-blocking: return fresh CSV even if cache write fails.
+      }
+    }
     return {
       statusCode: 200,
       headers: {
