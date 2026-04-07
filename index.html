@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plutus Bucket Wise Lead Categorisation</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2330;
+    --border: #30363d;
+    --border-subtle: #21262d;
+    --text: #e6edf3;
+    --text-muted: #7d8590;
+    --text-dim: #484f58;
+    --accent: #2d84eb;
+    --accent-glow: rgba(45,132,235,0.15);
+    --green: #3fb950;
+    --orange: #f0883e;
+    --red: #f85149;
+    --yellow: #d29922;
+    --purple: #bc8cff;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    min-height: 100vh;
+  }
+
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo-dot {
+    width: 10px;
+    height: 10px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent);
+  }
+  .header h1 {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--text);
+  }
+  .header-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+  }
+  .header-right {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .filter-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .filter-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .filter-chip {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    user-select: none;
+  }
+  .filter-chip:hover { border-color: var(--accent); color: var(--text); }
+  .filter-chip.active {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .filter-divider { width: 1px; height: 20px; background: var(--border); }
+  .filter-reset {
+    font-size: 11px;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: color 0.15s;
+  }
+  .filter-reset:hover { color: var(--red); }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border-subtle);
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-card {
+    background: var(--surface);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .stat-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .stat-value {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1;
+  }
+  .stat-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .stat-value.accent { color: var(--accent); }
+  .stat-value.green { color: var(--green); }
+  .stat-value.orange { color: var(--orange); }
+
+  .table-wrap {
+    padding: 16px 20px;
+    overflow-x: auto;
+  }
+  .table-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .table-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+  .row-count {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    min-width: 1400px;
+  }
+  thead {
+    position: sticky;
+    top: 49px;
+    z-index: 10;
+  }
+  thead tr {
+    background: var(--surface2);
+    border-bottom: 2px solid var(--border);
+  }
+  th {
+    padding: 8px 10px;
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    white-space: nowrap;
+    border-right: 1px solid var(--border-subtle);
+    cursor: pointer;
+    user-select: none;
+  }
+  th:hover { color: var(--text); background: var(--surface); }
+  th.sort-asc::after { content: ' ↑'; color: var(--accent); }
+  th.sort-desc::after { content: ' ↓'; color: var(--accent); }
+
+  .th-group {
+    padding: 5px 10px;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border-subtle);
+    text-align: center;
+  }
+  .th-group.g-volume { background: #101a14; color: #3fb950; }
+  .th-group.g-connect { background: #101418; color: var(--accent); }
+  .th-group.g-bucket { background: #1a1410; color: var(--orange); }
+  .th-group.g-cpl { background: #14101a; color: var(--purple); }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border-subtle);
+    transition: background 0.1s;
+  }
+  tbody tr:hover { background: var(--surface2); }
+
+  td {
+    padding: 6px 10px;
+    white-space: nowrap;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    border-right: 1px solid var(--border-subtle);
+    color: var(--text);
+    vertical-align: middle;
+  }
+  td.text-col {
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  td.muted { color: var(--text-muted); }
+  td.dim { color: var(--text-dim); }
+
+  .bar-cell { position: relative; }
+  .bar-bg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    opacity: 0.12;
+    pointer-events: none;
+  }
+  .bar-val { position: relative; z-index: 1; }
+
+  .cvr-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 10.5px;
+  }
+  .cvr-high { background: rgba(63,185,80,0.15); color: var(--green); }
+  .cvr-mid  { background: rgba(240,136,62,0.12); color: var(--orange); }
+  .cvr-low  { background: rgba(248,81,73,0.1);  color: var(--text-dim); }
+
+  .source-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    font-family: var(--sans);
+    font-weight: 500;
+    color: var(--text);
+  }
+  .source-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .week-chip {
+    font-size: 10px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    background: var(--surface);
+  }
+
+  .rev-val { color: var(--green); }
+  .rev-null { color: var(--text-dim); }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-dim);
+  }
+  .empty-state h3 { font-size: 16px; margin-bottom: 8px; color: var(--text-muted); }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+  @media (max-width: 900px) {
+    .stats-row { grid-template-columns: repeat(3, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo-dot"></div>
+    <h1>Plutus Bucket Wise Lead Categorisation</h1>
+    <span class="header-badge">2026 · Q1</span>
+  </div>
+  <div class="header-right" id="lastUpdated">31 Mar 2026</div>
+</div>
+
+<div class="filter-bar">
+  <span class="filter-label">Sources</span>
+  <div class="filter-group" id="sourceFilters"></div>
+  <div class="filter-divider"></div>
+  <span class="filter-label">Month</span>
+  <div class="filter-group" id="monthFilters"></div>
+  <div class="filter-divider"></div>
+  <span class="filter-reset" onclick="resetFilters()">✕ Reset</span>
+</div>
+
+<div class="stats-row" id="statsRow">
+  <div class="stat-card">
+    <div class="stat-label">Total Leads</div>
+    <div class="stat-value accent" id="st-leads">—</div>
+    <div class="stat-sub" id="st-leads-sub"></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total Sales</div>
+    <div class="stat-value green" id="st-sales">—</div>
+    <div class="stat-sub" id="st-sales-sub"></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total Connected</div>
+    <div class="stat-value" id="st-conn">—</div>
+    <div class="stat-sub" id="st-conn-sub"></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total Not Connected</div>
+    <div class="stat-value orange" id="st-notconn">—</div>
+    <div class="stat-sub" id="st-notconn-sub"></div>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <div class="table-meta">
+    <span class="table-title">Lead Categorisation — Detailed View</span>
+    <span class="row-count" id="rowCount">Loading…</span>
+  </div>
+  <table id="dataTable">
+    <thead>
+      <tr>
+        <th rowspan="2" onclick="sortTable(0)" style="min-width:180px">Source</th>
+        <th rowspan="2" onclick="sortTable(1)" style="min-width:90px">Month</th>
+        <th rowspan="2" onclick="sortTable(2)" style="min-width:80px">Week</th>
+        <th colspan="3" class="th-group g-volume">Volume</th>
+        <th colspan="3" class="th-group g-connect">Connection</th>
+        <th colspan="6" class="th-group g-bucket">Lead Buckets (%)</th>
+        <th colspan="2" class="th-group g-cpl">CPL Metrics</th>
+        <th rowspan="2" onclick="sortTable(17)" style="min-width:80px">Overall<br>CPL</th>
+      </tr>
+      <tr>
+        <th onclick="sortTable(3)">Total<br>Lead</th>
+        <th onclick="sortTable(4)">Total<br>Sale</th>
+        <th onclick="sortTable(5)">Revenue</th>
+        <th onclick="sortTable(6)">CVR %</th>
+        <th onclick="sortTable(7)">Connected<br>%</th>
+        <th onclick="sortTable(8)">Not Conn<br>%</th>
+        <th onclick="sortTable(9)">Cold/<br>Dead</th>
+        <th onclick="sortTable(10)">Nurture</th>
+        <th onclick="sortTable(11)">Warm/NI</th>
+        <th onclick="sortTable(12)">Warm<br>Int</th>
+        <th onclick="sortTable(13)">Hot/<br>Active</th>
+        <th onclick="sortTable(14)">Closure/<br>Payment</th>
+        <th onclick="sortTable(15)">CPL Int</th>
+        <th onclick="sortTable(16)">CPL NC</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+  <div class="empty-state" id="emptyState" style="display:none">
+    <h3>No data matches current filters</h3>
+    <p>Try selecting different sources or months</p>
+  </div>
+</div>
+
+<script>
+const API_CANDIDATES = [
+  '/.netlify/functions/data'
+];
+const FETCH_TIMEOUT_MS = 20000;
+const MAX_RETRIES_PER_SOURCE = 3;
+const CSV_CACHE_KEY = 'plutus_live_csv_cache_v1';
+
+let ALL_DATA = [];
+const SOURCE_COLORS = {};
+const PALETTE = ['#2d84eb','#3fb950','#f0883e','#bc8cff','#f85149','#d29922','#58a6ff','#7ee787','#ffa657','#d2a8ff','#ff7b72','#e3b341'];
+let allSources = [];
+
+let activeSourceFilters = new Set();
+let activeMonthFilters = new Set();
+let sortCol = -1;
+let sortDir = 1;
+
+function parseCSV(csv) {
+  const lines = csv.trim().split('\n');
+  const headers = lines[0].split(',');
+  return lines.slice(1).map(line => {
+    const vals = line.split(',');
+    const obj = {};
+    headers.forEach((h, i) => { obj[h.trim()] = vals[i] !== undefined ? vals[i].trim() : ''; });
+    return obj;
+  });
+}
+
+function buildColorMap() {
+  allSources = [...new Set(ALL_DATA.map(r => r['Sources::multi-filter']))].sort();
+  allSources.forEach((s, i) => { SOURCE_COLORS[s] = PALETTE[i % PALETTE.length]; });
+}
+
+function buildFilters() {
+  const sf = document.getElementById('sourceFilters');
+  sf.innerHTML = '';
+  allSources.forEach(s => {
+    const chip = document.createElement('span');
+    chip.className = 'filter-chip';
+    chip.textContent = s.replace(/_/g, ' ');
+    chip.title = s;
+    chip.dataset.val = s;
+    chip.onclick = () => toggleFilter('source', s, chip);
+    sf.appendChild(chip);
+  });
+
+  const mf = document.getElementById('monthFilters');
+  mf.innerHTML = '';
+  const MONTH_ORDER = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const months = [...new Set(ALL_DATA.map(r => r['Month::multi-filter']).filter(m => m && m !== 'Total'))]
+    .sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b));
+  months.forEach(m => {
+    const chip = document.createElement('span');
+    chip.className = 'filter-chip';
+    chip.textContent = m;
+    chip.dataset.val = m;
+    chip.onclick = () => toggleFilter('month', m, chip);
+    mf.appendChild(chip);
+  });
+}
+
+function toggleFilter(type, val, chip) {
+  const set = type === 'source' ? activeSourceFilters : activeMonthFilters;
+  if (set.has(val)) {
+    set.delete(val);
+    chip.classList.remove('active');
+  } else {
+    set.add(val);
+    chip.classList.add('active');
+  }
+  render();
+}
+
+function resetFilters() {
+  activeSourceFilters.clear();
+  activeMonthFilters.clear();
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  sortCol = -1;
+  sortDir = 1;
+  document.querySelectorAll('thead th[onclick]').forEach(t => t.classList.remove('sort-asc', 'sort-desc'));
+  render();
+}
+
+function getFiltered() {
+  return ALL_DATA.filter(r => {
+    const src = r['Sources::multi-filter'];
+    const mon = r['Month::multi-filter'];
+    if (activeSourceFilters.size && !activeSourceFilters.has(src)) return false;
+    if (activeMonthFilters.size && !activeMonthFilters.has(mon)) return false;
+    return true;
+  });
+}
+
+function fmtRaw(v, dec = 2) {
+  if (v === '' || v === undefined || isNaN(+v)) return '<span class="dim">—</span>';
+  return (+v).toFixed(dec);
+}
+
+function fmtRev(v) {
+  if (v === '' || isNaN(+v)) return '<span class="rev-null">—</span>';
+  const n = +v;
+  if (n >= 1e6) return `<span class="rev-val">₹${(n / 1e6).toFixed(2)}M</span>`;
+  if (n >= 1e3) return `<span class="rev-val">₹${(n / 1e3).toFixed(1)}K</span>`;
+  return `<span class="rev-val">₹${n.toFixed(0)}</span>`;
+}
+
+function cvrBadge(v) {
+  if (v === '' || isNaN(+v)) return '<span class="dim">—</span>';
+  const pct = +v * 100;
+  const cls = pct >= 2 ? 'cvr-high' : pct >= 0.5 ? 'cvr-mid' : 'cvr-low';
+  return `<span class="cvr-badge ${cls}">${pct.toFixed(2)}%</span>`;
+}
+
+function sortTable(col) {
+  const ths = document.querySelectorAll('thead th[onclick]');
+  ths.forEach(t => t.classList.remove('sort-asc', 'sort-desc'));
+  if (sortCol === col) sortDir *= -1;
+  else {
+    sortCol = col;
+    sortDir = 1;
+  }
+  if (ths[col]) ths[col].classList.add(sortDir === 1 ? 'sort-asc' : 'sort-desc');
+  render();
+}
+
+const COL_KEYS = [
+  'Sources::multi-filter', 'Month::multi-filter', 'week',
+  'Total_Lead', 'Total_Sale', 'Revenue', 'CVR', 'Connected', 'Not_Connected',
+  'COLD / DEAD', 'NURTURE', 'WARM/NI', 'WARM Int', 'HOT / ACTIVE', 'CLOSURE / PAYMENT',
+  'CPL_Int', 'CPL_NC', 'Overall_CPL'
+];
+
+function updateStats(rows) {
+  const totalLeads = rows.reduce((s, r) => s + (+r['Total_Lead'] || 0), 0);
+  const totalSales = rows.reduce((s, r) => s + (+r['Total_Sale'] || 0), 0);
+  const totalConn = rows.reduce((s, r) => s + Math.round((+r['Connected'] || 0) * (+r['Total_Lead'] || 0) / 100), 0);
+  const totalNotConn = rows.reduce((s, r) => s + Math.round((+r['Not_Connected'] || 0) * (+r['Total_Lead'] || 0) / 100), 0);
+
+  document.getElementById('st-leads').textContent = totalLeads.toLocaleString();
+  document.getElementById('st-leads-sub').textContent = rows.length + ' rows';
+  document.getElementById('st-sales').textContent = totalSales.toLocaleString();
+  document.getElementById('st-sales-sub').textContent = 'conversions';
+  document.getElementById('st-conn').textContent = totalConn.toLocaleString();
+  document.getElementById('st-conn-sub').textContent = 'leads connected';
+  document.getElementById('st-notconn').textContent = totalNotConn.toLocaleString();
+  document.getElementById('st-notconn-sub').textContent = 'leads not connected';
+}
+
+function render() {
+  let rows = getFiltered();
+
+  if (sortCol >= 0) {
+    const key = COL_KEYS[sortCol];
+    rows = [...rows].sort((a, b) => {
+      const na = parseFloat(a[key]);
+      const nb = parseFloat(b[key]);
+      if (!isNaN(na) && !isNaN(nb)) return (na - nb) * sortDir;
+      return String(a[key]).localeCompare(String(b[key])) * sortDir;
+    });
+  }
+
+  updateStats(rows);
+
+  const tbody = document.getElementById('tableBody');
+  const empty = document.getElementById('emptyState');
+  document.getElementById('rowCount').textContent = rows.length + ' rows';
+
+  if (rows.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  const maxLead = Math.max(...rows.map(r => +r['Total_Lead'] || 0));
+
+  let html = '';
+  rows.forEach(r => {
+    const src = r['Sources::multi-filter'];
+    const mon = r['Month::multi-filter'];
+    const wk = r['week'];
+    const color = SOURCE_COLORS[src] || '#7d8590';
+    const leadN = +r['Total_Lead'] || 0;
+    const leadPct = maxLead > 0 ? Math.min(100, (leadN / maxLead) * 100) : 0;
+
+    html += `<tr>
+      <td class="text-col"><span class="source-pill"><span class="source-dot" style="background:${color}"></span>${src.replace(/_/g, ' ')}</span></td>
+      <td class="muted">${mon}</td>
+      <td><span class="week-chip">${wk}</span></td>
+      <td class="bar-cell"><div class="bar-bg" style="width:${leadPct}%;background:${color}"></div><span class="bar-val">${leadN.toLocaleString()}</span></td>
+      <td>${r['Total_Sale'] || '<span class="dim">0</span>'}</td>
+      <td>${fmtRev(r['Revenue'])}</td>
+      <td>${cvrBadge(r['CVR'])}</td>
+      <td class="muted">${fmtRaw(r['Connected'])}</td>
+      <td class="muted">${fmtRaw(r['Not_Connected'])}</td>
+      <td>${fmtRaw(r['COLD / DEAD'])}</td>
+      <td>${fmtRaw(r['NURTURE'])}</td>
+      <td>${fmtRaw(r['WARM/NI'])}</td>
+      <td>${fmtRaw(r['WARM Int'])}</td>
+      <td>${fmtRaw(r['HOT / ACTIVE'])}</td>
+      <td>${fmtRaw(r['CLOSURE / PAYMENT'])}</td>
+      <td class="muted">${fmtRaw(r['CPL_Int'])}</td>
+      <td class="muted">${fmtRaw(r['CPL_NC'])}</td>
+      <td><strong>${fmtRaw(r['Overall_CPL'])}</strong></td>
+    </tr>`;
+  });
+
+  tbody.innerHTML = html;
+}
+
+async function loadData() {
+  document.getElementById('rowCount').textContent = 'Fetching live data…';
+  document.getElementById('tableBody').innerHTML =
+    '<tr><td colspan="18" style="text-align:center;padding:40px;color:var(--text-muted);font-family:var(--mono)">Loading...</td></tr>';
+
+  try {
+    const csv = await fetchCsvWithFallback();
+
+    ALL_DATA = parseCSV(csv);
+    buildColorMap();
+    buildFilters();
+    render();
+    const now = new Date();
+    document.getElementById('lastUpdated').textContent =
+      'Live · Refreshed ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } catch (err) {
+    const cached = localStorage.getItem(CSV_CACHE_KEY);
+    if (cached && cached.trim()) {
+      ALL_DATA = parseCSV(cached);
+      buildColorMap();
+      buildFilters();
+      render();
+      document.getElementById('rowCount').textContent = `${ALL_DATA.length} rows (cached)`;
+      document.getElementById('lastUpdated').textContent = 'Offline mode · showing last successful refresh';
+      return;
+    }
+
+    document.getElementById('rowCount').textContent = 'Error loading data';
+    document.getElementById('tableBody').innerHTML =
+      `<tr><td colspan="18" style="text-align:center;padding:40px;color:var(--red);font-family:var(--mono)">Data is temporarily unavailable. Please try again shortly.</td></tr>`;
+    document.getElementById('lastUpdated').textContent = 'Failed to load';
+  }
+}
+
+async function fetchCsvWithFallback() {
+  let lastErr = null;
+
+  for (const baseUrl of API_CANDIDATES) {
+    for (let attempt = 1; attempt <= MAX_RETRIES_PER_SOURCE; attempt++) {
+      try {
+        const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}_t=${Date.now()}`;
+        const res = await fetchWithTimeout(url, { cache: 'no-store' }, FETCH_TIMEOUT_MS);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const csv = await res.text();
+        if (!csv || !csv.trim()) throw new Error('Empty CSV response');
+
+        localStorage.setItem(CSV_CACHE_KEY, csv);
+        return csv;
+      } catch (e) {
+        if (e && e.name === 'AbortError') {
+          lastErr = new Error(`Timeout after ${Math.round(FETCH_TIMEOUT_MS / 1000)}s`);
+        } else {
+          lastErr = e;
+        }
+        await sleep(350 * attempt);
+      }
+    }
+  }
+
+  throw lastErr || new Error('Failed to fetch');
+}
+
+function fetchWithTimeout(url, options, timeoutMs) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal })
+    .finally(() => clearTimeout(id));
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+loadData();
+setInterval(loadData, 5 * 60 * 1000);
+</script>
+</body>
+</html>
