@@ -381,8 +381,9 @@
         <th colspan="3" class="th-group g-volume">Volume</th>
         <th colspan="4" class="th-group g-connect">Connection</th>
         <th colspan="6" class="th-group g-bucket">Lead Buckets (%)</th>
+        <th rowspan="2" onclick="sortTable(16)" style="min-width:70px">VC</th>
         <th colspan="2" class="th-group g-cpl">CPL Metrics</th>
-        <th rowspan="2" onclick="sortTable(18)" style="min-width:80px">Overall<br>CPL</th>
+        <th rowspan="2" onclick="sortTable(19)" style="min-width:80px">Overall<br>CPL</th>
       </tr>
       <tr>
         <th onclick="sortTable(3)">Total<br>Lead</th>
@@ -398,8 +399,8 @@
         <th onclick="sortTable(13)">Warm<br>Int</th>
         <th onclick="sortTable(14)">Hot/<br>Active</th>
         <th onclick="sortTable(15)">Closure/<br>Payment</th>
-        <th onclick="sortTable(16)">CPL Int</th>
-        <th onclick="sortTable(17)">CPL NC</th>
+        <th onclick="sortTable(17)">CPL Int</th>
+        <th onclick="sortTable(18)">CPL NC</th>
       </tr>
     </thead>
     <tbody id="tableBody"></tbody>
@@ -580,7 +581,7 @@ const COL_KEYS = [
   'Sources::multi-filter', 'Month::multi-filter', 'week',
   'Total_Lead', 'Total_Sale', 'Revenue', 'CVR', 'Dialled', 'Connected', 'Not_Connected',
   'COLD / DEAD', 'NURTURE', 'WARM/NI', 'WARM Int', 'HOT / ACTIVE', 'CLOSURE / PAYMENT',
-  'CPL_Int', 'CPL_NC', 'Overall_CPL'
+  'VC', 'CPL_Int', 'CPL_NC', 'Overall_CPL'
 ];
 
 function updateStats(rows) {
@@ -653,6 +654,7 @@ function render() {
       <td>${fmtRaw(r['WARM Int'])}</td>
       <td>${fmtRaw(r['HOT / ACTIVE'])}</td>
       <td>${fmtRaw(r['CLOSURE / PAYMENT'])}</td>
+      <td class="muted">${fmtRaw(r['VC'])}</td>
       <td class="muted">${fmtRaw(r['CPL_Int'])}</td>
       <td class="muted">${fmtRaw(r['CPL_NC'])}</td>
       <td><strong>${fmtRaw(r['Overall_CPL'])}</strong></td>
@@ -665,7 +667,7 @@ function render() {
 async function loadData() {
   document.getElementById('rowCount').textContent = 'Fetching live data…';
   document.getElementById('tableBody').innerHTML =
-    '<tr><td colspan="19" style="text-align:center;padding:40px;color:var(--text-muted);font-family:var(--mono)">Loading...</td></tr>';
+    '<tr><td colspan="20" style="text-align:center;padding:40px;color:var(--text-muted);font-family:var(--mono)">Loading...</td></tr>';
 
   try {
     const csv = await fetchCsvWithFallback();
@@ -691,7 +693,7 @@ async function loadData() {
 
     document.getElementById('rowCount').textContent = 'Error loading data';
     document.getElementById('tableBody').innerHTML =
-      `<tr><td colspan="19" style="text-align:center;padding:40px;color:var(--red);font-family:var(--mono)">Data is temporarily unavailable. Please try again shortly.</td></tr>`;
+      `<tr><td colspan="20" style="text-align:center;padding:40px;color:var(--red);font-family:var(--mono)">Data is temporarily unavailable. Please try again shortly.</td></tr>`;
     document.getElementById('lastUpdated').textContent = 'Failed to load';
   }
 }
