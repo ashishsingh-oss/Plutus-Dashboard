@@ -61,5 +61,5 @@ exports.handler = async function handler() {
 };
 
 exports.config = {
-  schedule: "*/5 * * * *"
+  schedule: "0 * * * *"
 };
