@@ -436,6 +436,16 @@ function parseCSV(csv) {
   });
 }
 
+function removeAggregateTotalRows(rows) {
+  return rows.filter((r) => {
+    const src = (r['Sources::multi-filter'] || '').trim().toLowerCase();
+    const mon = (r['Month::multi-filter'] || '').trim().toLowerCase();
+    const wk = (r['week'] || '').trim().toLowerCase();
+    // Drop pre-aggregated CSV summary rows to avoid double counting in dashboard stats.
+    return src !== 'total' && mon !== 'total' && wk !== 'total';
+  });
+}
+
 function buildColorMap() {
   allSources = [...new Set(ALL_DATA.map(r => r['Sources::multi-filter']))].sort();
   allSources.forEach((s, i) => { SOURCE_COLORS[s] = PALETTE[i % PALETTE.length]; });
@@ -627,7 +637,7 @@ async function loadData() {
   try {
     const csv = await fetchCsvWithFallback();
 
-    ALL_DATA = parseCSV(csv);
+    ALL_DATA = removeAggregateTotalRows(parseCSV(csv));
     buildColorMap();
     buildFilters();
     render();
@@ -637,7 +647,7 @@ async function loadData() {
   } catch (err) {
     const cached = localStorage.getItem(CSV_CACHE_KEY);
     if (cached && cached.trim()) {
-      ALL_DATA = parseCSV(cached);
+      ALL_DATA = removeAggregateTotalRows(parseCSV(cached));
       buildColorMap();
       buildFilters();
       render();
