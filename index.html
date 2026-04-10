@@ -383,7 +383,7 @@
         <th colspan="3" class="th-group g-volume">Volume</th>
         <th colspan="4" class="th-group g-connect">Connection</th>
         <th colspan="6" class="th-group g-bucket">Lead Buckets (%)</th>
-        <th colspan="2" class="th-group g-vc">VC</th>
+        <th colspan="2" class="th-group g-vc">VC/Overall</th>
         <th colspan="2" class="th-group g-cpl">CPL Metrics</th>
         <th rowspan="2" onclick="sortTable(20)" style="min-width:80px">Overall<br>CPL</th>
       </tr>
@@ -401,8 +401,8 @@
         <th onclick="sortTable(13)">Warm<br>Int</th>
         <th onclick="sortTable(14)">Hot/<br>Active</th>
         <th onclick="sortTable(15)">Closure/<br>Payment</th>
-        <th onclick="sortTable(16)">VC<br>Dn</th>
-        <th onclick="sortTable(17)">VC<br>Sch</th>
+        <th onclick="sortTable(16)">VC<br>Sch</th>
+        <th onclick="sortTable(17)">VC<br>Dn</th>
         <th onclick="sortTable(18)">CPL Int</th>
         <th onclick="sortTable(19)">CPL NC</th>
       </tr>
@@ -585,7 +585,7 @@ const COL_KEYS = [
   'Sources::multi-filter', 'Month::multi-filter', 'week',
   'Total_Lead', 'Total_Sale', 'Revenue', 'CVR', 'Dialled', 'Connected', 'Not_Connected',
   'COLD / DEAD', 'NURTURE', 'WARM/NI', 'WARM Int', 'HOT / ACTIVE', 'CLOSURE / PAYMENT',
-  'VC_Dn', 'VC_Sch', 'CPL_Int', 'CPL_NC', 'Overall_CPL'
+  'VC_Sch', 'VC_Dn', 'CPL_Int', 'CPL_NC', 'Overall_CPL'
 ];
 
 function updateStats(rows) {
@@ -658,8 +658,8 @@ function render() {
       <td>${fmtRaw(r['WARM Int'])}</td>
       <td>${fmtRaw(r['HOT / ACTIVE'])}</td>
       <td>${fmtRaw(r['CLOSURE / PAYMENT'])}</td>
-      <td class="muted">${fmtRaw(r['VC_Dn'])}</td>
       <td class="muted">${fmtRaw(r['VC_Sch'])}</td>
+      <td class="muted">${fmtRaw(r['VC_Dn'])}</td>
       <td class="muted">${fmtRaw(r['CPL_Int'])}</td>
       <td class="muted">${fmtRaw(r['CPL_NC'])}</td>
       <td><strong>${fmtRaw(r['Overall_CPL'])}</strong></td>
